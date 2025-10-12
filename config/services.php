@@ -35,4 +35,35 @@ return [
         ],
     ],
 
+    'transcribe' => [
+        'venv'    => env('TRANSCRIBE_VENV'),
+        'script'  => env('TRANSCRIBE_SCRIPT'),
+        'timeout' => (int) env('TRANSCRIBE_TIMEOUT', 600),
+        'workdir' => env('TRANSCRIBE_WORKDIR', storage_path('app/transcribe')),
+    ],
+
+    'ollama' => [
+        'base_url'      => env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
+        'model'         => env('OLLAMA_MODEL', 'llama3.1:8b-instruct'),
+        'num_ctx'       => (int) env('OLLAMA_NUM_CTX', 8192),
+        'prompt_default'=> <<<'PROMPT'
+            Responder no Idioma Português (Brasil).
+            Você é um editor sênior. Formate o conteúdo abaixo em Markdown objetivo, em PT-BR, com as seções:
+                1. **Resumo executivo** (5–8 linhas)
+                2. **Tópicos-chave** (bullet points concisos)
+                3. **Linha do tempo** (se houver timestamps no texto, use mm:ss ou hh:mm:ss)
+                4. **Conceitos e termos** (glossário com definições curtas)
+                5. **Perguntas frequentes (FAQ)** (3–6 perguntas)
+                6. **Citações notáveis** (até 5 frases curtas)
+                7. **Próximos passos** (itens acionáveis)
+
+                Regras:
+                - Seja fiel ao conteúdo; não invente.
+                - Texto direto, sem floreios.
+                - Se faltar info para uma seção, inclua “(não identificado)”.
+                - Saída exclusivamente em Markdown.
+                - Responder em Português (Brasil).
+            PROMPT,
+    ],
+
 ];
