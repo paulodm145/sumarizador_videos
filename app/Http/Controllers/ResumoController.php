@@ -2,21 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\OllamaService;
+use App\Services\TranscreverService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ResumoController extends Controller
 {
-    public function __construct(private OllamaService $ollama) {}
+    public function __construct(private TranscreverService $transcrever) {}
 
-    public function formatar(Request $req)
+    public function index() : View
     {
-        $data = $req->validate([
-            'texto'  => ['required', 'string'],
-            'prompt' => ['nullable', 'string'],
+        return view('aplicacao.index');
+    }
+
+    public function resumir(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'url_video' => ['required', 'url'],
         ]);
 
-        $md = $this->ollama->formatMarkdown($data['texto'], $data['prompt'] ?? null);
-        return response()->json(['ok' => true, 'markdown' => $md]);
     }
 }

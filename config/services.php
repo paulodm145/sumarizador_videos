@@ -66,4 +66,40 @@ return [
             PROMPT,
     ],
 
+    'openai' => [
+        'base_url'      => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'api_key'       => env('OPENAI_API_KEY'),
+        'model'         => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'temperature'   => env('OPENAI_TEMPERATURE', 0.2),
+        'max_tokens'    => env('OPENAI_MAX_TOKENS', 2048),
+        'timeout'       => env('OPENAI_TIMEOUT', 120),
+        'retries'       => env('OPENAI_RETRIES', 3),
+        'backoff_ms'    => env('OPENAI_BACKOFF_MS', 800),
+        'chunk_chars'   => env('OPENAI_CHUNK_CHARS', 12000),
+
+        'system_prompt' => env('OPENAI_SYSTEM_PROMPT', <<<'PROMPT'
+            Responder no Idioma Português (Brasil).
+            Você é um editor sênior. Formate o conteúdo abaixo em Markdown objetivo, em PT-BR, com as seções:
+                1. **Resumo executivo** (5–8 linhas)
+                2. **Tópicos-chave** (bullet points concisos)
+                3. **Linha do tempo** (se houver timestamps no texto, use mm:ss ou hh:mm:ss)
+                4. **Conceitos e termos** (glossário com definições curtas)
+                5. **Perguntas frequentes (FAQ)** (3–6 perguntas)
+                6. **Citações notáveis** (até 5 frases curtas)
+                7. **Próximos passos** (itens acionáveis)
+
+                Regras:
+                - Seja fiel ao conteúdo; não invente.
+                - Texto direto, sem floreios.
+                - Se faltar info para uma seção, inclua “(não identificado)”.
+                - Saída exclusivamente em Markdown.
+                - Responder em Português (Brasil).
+            PROMPT
+        ),
+
+        // prompts padrão (customizáveis)
+        'prompt_chunk'  => env('OPENAI_PROMPT_CHUNK', "Resuma objetivamente o trecho abaixo em bullet points claros (máx. 10). Mantenha nomes, datas e números. Trecho:\n"),
+        'prompt_merge'  => env('OPENAI_PROMPT_MERGE', "Una os resumos parciais abaixo em um único texto Markdown organizado (Resumo executivo, Tópicos-chave, Perguntas, Próximos passos). Evite repetição. Resumos:\n"),
+    ],
+
 ];
