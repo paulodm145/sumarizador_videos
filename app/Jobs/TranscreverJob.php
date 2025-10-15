@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Mail\ResultadoResumoMail;
 use App\Services\TranscreverService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Mail;
 
 class TranscreverJob implements ShouldQueue
 {
@@ -16,7 +18,8 @@ class TranscreverJob implements ShouldQueue
     public function __construct(
         public string $url,
         public string $model = 'base',
-        public ?string $lang = null
+        public ?string $lang = null,
+        public ?string $email = null
     ) {}
 
     public function handle(TranscreverService $service, \App\Services\OpenAiService $openAi): void
@@ -40,6 +43,19 @@ class TranscreverJob implements ShouldQueue
         file_put_contents($dest, $markdown);
 
         logger()->info('[job] Resumo gravado', ['dest' => $dest]);
+
+        $recipient = $this->email ?: config('services.resumo.notification_email');
+
+        if (! empty($recipient)) {
+            Mail::to($recipient)->send(new ResultadoResumoMail(
+                urlVideo: $this->url,
+                resumo: $markdown,
+            ));
+
+            logger()->info('[job] Resumo enviado por e-mail', ['destinatario' => $recipient]);
+        } else {
+            logger()->warning('[job] Resumo não enviado por e-mail: destinatário não configurado');
+        }
     }
 
 }

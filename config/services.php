@@ -35,6 +35,10 @@ return [
         ],
     ],
 
+    'resumo' => [
+        'notification_email' => env('RESUMO_NOTIFICATION_EMAIL'),
+    ],
+
     'transcribe' => [
         'venv'    => env('TRANSCRIBE_VENV'),
         'script'  => env('TRANSCRIBE_SCRIPT'),
