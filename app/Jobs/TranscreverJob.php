@@ -47,12 +47,21 @@ class TranscreverJob implements ShouldQueue
         $recipient = $this->email ?: config('services.resumo.notification_email');
 
         if (! empty($recipient)) {
-            Mail::to($recipient)->send(new ResultadoResumoMail(
-                urlVideo: $this->url,
-                resumo: $markdown,
-            ));
+            try {
+                Mail::to($recipient)->send(new ResultadoResumoMail(
+                    urlVideo: $this->url,
+                    resumo: $markdown,
+                ));
 
-            logger()->info('[job] Resumo enviado por e-mail', ['destinatario' => $recipient]);
+                logger()->info('[job] Resumo enviado por e-mail', ['destinatario' => $recipient]);
+            } catch (\Throwable $exception) {
+                logger()->error('[job] Falha ao enviar resumo por e-mail', [
+                    'destinatario' => $recipient,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                throw $exception;
+            }
         } else {
             logger()->warning('[job] Resumo não enviado por e-mail: destinatário não configurado');
         }
