@@ -13,7 +13,20 @@
 
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-2xl shadow-xl p-8">
-        <form id="summarizerForm" class="space-y-6">
+        @if (session('status'))
+            <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-700">
+                <i class="fas fa-check-circle mr-2"></i>
+                {{ session('status') }}
+            </div>
+        @endif
+
+        <form
+            id="summarizerForm"
+            class="space-y-6"
+            method="POST"
+            action="{{ route('resumos.resumir') }}"
+        >
+            @csrf
             <div>
                 <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-envelope text-blue-500 mr-2"></i>
@@ -38,7 +51,7 @@
                 <input
                     type="url"
                     id="videoUrl"
-                    name="videoUrl"
+                    name="video_url"
                     required
                     placeholder="https://www.youtube.com/watch?v=..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-gray-700"
@@ -93,14 +106,17 @@
 </div>
 
 <script>
-    document.getElementById('summarizerForm').addEventListener('submit', function(e) {
+    const form = document.getElementById('summarizerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingText = document.getElementById('loadingText');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const email = document.getElementById('email').value;
         const videoUrl = document.getElementById('videoUrl').value;
-        const submitBtn = document.getElementById('submitBtn');
-        const submitText = document.getElementById('submitText');
-        const loadingText = document.getElementById('loadingText');
 
         // Validação básica da URL do YouTube
         const youtubeRegex = /^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
@@ -116,31 +132,45 @@
             return;
         }
 
-        // Simular loading
         submitBtn.disabled = true;
         submitText.classList.add('hidden');
         loadingText.classList.remove('hidden');
 
-        // Simular envio para o backend
-        setTimeout(() => {
-            // Resetar botão
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    email: email,
+                    video_url: videoUrl,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                if (response.status === 422 && data.errors) {
+                    const messages = Object.values(data.errors).flat();
+                    throw new Error(messages.join('\n'));
+                }
+
+                throw new Error(data.message || 'Não foi possível iniciar o processamento. Tente novamente em instantes.');
+            }
+
+            alert(`✅ ${data.message || 'Solicitação enviada com sucesso! Verifique seu email em alguns minutos.'}`);
+            form.reset();
+        } catch (error) {
+            console.error('Erro ao enviar solicitação de resumo:', error);
+            alert(`❌ ${error.message || 'Ocorreu um erro inesperado. Tente novamente.'}`);
+        } finally {
             submitBtn.disabled = false;
             submitText.classList.remove('hidden');
             loadingText.classList.add('hidden');
-
-            // Mostrar alert de sucesso
-            alert(`✅ Solicitação enviada com sucesso!\n\nO resumo do vídeo será processado e enviado para: ${email}\n\nVerifique sua caixa de entrada em alguns minutos.`);
-
-            // Limpar formulário
-            document.getElementById('summarizerForm').reset();
-
-            // Log para debug (simula envio para backend)
-            console.log('Dados enviados:', {
-                email: email,
-                videoUrl: videoUrl,
-                timestamp: new Date().toISOString()
-            });
-        }, 2000);
+        }
     });
 
     // Validação em tempo real da URL do YouTube
