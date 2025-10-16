@@ -10,6 +10,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
+use function dispatch;
+use function dispatch_sync;
 
 class TranscreverJob implements ShouldQueue
 {
@@ -21,6 +23,24 @@ class TranscreverJob implements ShouldQueue
         public ?string $lang = null,
         public ?string $email = null
     ) {}
+
+    public static function dispatchWithConfig(
+        string $url,
+        string $model = 'base',
+        ?string $lang = null,
+        ?string $email = null
+    ): bool {
+        $async = (bool) config('services.resumo.dispatch_async', false);
+        $job = new self($url, $model, $lang, $email);
+
+        if ($async) {
+            dispatch($job);
+        } else {
+            dispatch_sync($job);
+        }
+
+        return $async;
+    }
 
     public function handle(TranscreverService $service, \App\Services\OpenAiService $openAi): void
     {
@@ -44,10 +64,14 @@ class TranscreverJob implements ShouldQueue
 
         logger()->info('[job] Resumo gravado', ['dest' => $dest]);
 
-        $recipient = $this->email ?: config('services.resumo.notification_email');
+        $recipient = trim((string) ($this->email ?: config('services.resumo.notification_email')));
 
-        if (! empty($recipient)) {
+        if ($recipient !== '') {
             try {
+                logger()->info('[job] Preparando envio do resumo por e-mail', [
+                    'destinatario' => $recipient,
+                ]);
+
                 Mail::to($recipient)->send(new ResultadoResumoMail(
                     urlVideo: $this->url,
                     resumo: $markdown,

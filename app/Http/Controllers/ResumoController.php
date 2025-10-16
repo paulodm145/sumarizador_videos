@@ -22,21 +22,25 @@ class ResumoController extends Controller
             'video_url' => ['required', 'url'],
         ]);
 
-        TranscreverJob::dispatch(
+        $async = TranscreverJob::dispatchWithConfig(
             url: $data['video_url'],
             model: 'base',
             lang: null,
             email: $data['email'],
         );
 
+        $message = $async
+            ? 'Solicitação enviada com sucesso! Você receberá o resumo por email em alguns minutos.'
+            : 'Resumo gerado com sucesso! Confira seu email; ele deve chegar em instantes.';
+
         if ($request->wantsJson()) {
             return response()->json([
-                'message' => 'Solicitação enviada com sucesso! Você receberá o resumo por email em alguns minutos.',
-            ], 202);
+                'message' => $message,
+            ], $async ? 202 : 200);
         }
 
         return redirect()
             ->route('index')
-            ->with('status', 'Solicitação enviada com sucesso! Você receberá o resumo por email em alguns minutos.');
+            ->with('status', $message);
     }
 }
