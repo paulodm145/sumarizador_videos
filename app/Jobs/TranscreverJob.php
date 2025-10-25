@@ -66,6 +66,9 @@ class TranscreverJob implements ShouldQueue
 
         $recipient = trim((string) ($this->email ?: config('services.resumo.notification_email')));
 
+        logger()->info('[job] Destinatário do resumo', ['destinatario' => $recipient]);
+
+
         if ($recipient !== '') {
             try {
                 logger()->info('[job] Preparando envio do resumo por e-mail', [

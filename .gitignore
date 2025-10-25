@@ -26,6 +26,9 @@ Thumbs.db
 venv/
 python/venv-transcribe/
 
+public/runtime/
+public/workdir
+
 
 
 
