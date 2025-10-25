@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import yt_dlp
+from yt_dlp.utils import DownloadError
 import whisper
 import os
 import logging
@@ -23,7 +24,7 @@ def setup_logging(log_dir="logs", log_file_name="transcrever.log"):
     logging.info("Logger inicializado. Os logs serão gravados em %s", log_file_path)
     return log_file_path
 
-def download_audio(video_url, outdir="workdir"):
+def download_audio(video_url, outdir="workdir", cookies_file=None):
     os.makedirs(outdir, exist_ok=True)
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -35,10 +36,30 @@ def download_audio(video_url, outdir="workdir"):
         }],
         'quiet': True,
         'noprogress': True,
+        'retries': 3,
+        'http_headers': {
+            'User-Agent': (
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ),
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        },
+        'noplaylist': True,
     }
+
+    if cookies_file:
+        if not os.path.exists(cookies_file):
+            raise FileNotFoundError(f"Arquivo de cookies não encontrado: {cookies_file}")
+        ydl_opts['cookiefile'] = cookies_file
+        logging.info("Usando cookies para autenticar o download: %s", cookies_file)
+
     logging.info("Baixando áudio do vídeo: %s", video_url)
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
+    except DownloadError as err:
+        logging.error("Falha ao baixar o áudio: %s", err)
+        raise
     audio_path = f'{outdir}/audio.mp3'
     logging.info("Áudio salvo em %s", os.path.abspath(audio_path))
     return audio_path
@@ -61,6 +82,14 @@ def main():
     parser.add_argument("--model", default="base", help="Modelo do Whisper (tiny|base|small|medium|large)")
     parser.add_argument("--lang", default=None, help="Forçar idioma (ex: 'pt')")
     parser.add_argument("--out", default="transcricao.txt", help="Arquivo de saída")
+    parser.add_argument(
+        "--cookies-file",
+        default=os.environ.get("TRANSCRIBE_COOKIES_FILE"),
+        help=(
+            "Arquivo de cookies exportado do navegador para contornar erros 403/410. "
+            "Também pode ser definido pela variável de ambiente TRANSCRIBE_COOKIES_FILE."
+        ),
+    )
     args = parser.parse_args()
 
     log_file_path = setup_logging()
@@ -73,7 +102,20 @@ def main():
     )
 
     try:
-        audio_path = download_audio(args.url)
+        try:
+            audio_path = download_audio(args.url, cookies_file=args.cookies_file)
+        except DownloadError as err:
+            error_message = str(err)
+            if "HTTP Error 403" in error_message and not args.cookies_file:
+                logging.warning(
+                    "Download bloqueado com HTTP 403. Requisite cookies exportados do navegador."
+                )
+                error_message = (
+                    "O YouTube retornou HTTP 403 (acesso negado). "
+                    "Exporte os cookies do seu navegador e informe o caminho via "
+                    "--cookies-file ou variável TRANSCRIBE_COOKIES_FILE."
+                )
+            raise RuntimeError(error_message) from err
         text = transcribe_audio(audio_path, model_name=args.model, language=args.lang)
 
         with open(args.out, "w", encoding="utf-8") as f:
