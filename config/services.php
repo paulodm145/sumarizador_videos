@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    'resumo' => [
+        'notification_email' => env('RESUMO_NOTIFICATION_EMAIL'),
+        'dispatch_async' => env('RESUMO_DISPATCH_ASYNC', false),
+    ],
+
     'transcribe' => [
         'venv'    => env('TRANSCRIBE_VENV'),
         'script'  => env('TRANSCRIBE_SCRIPT'),

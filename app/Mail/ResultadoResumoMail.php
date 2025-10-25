@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -13,13 +12,11 @@ class ResultadoResumoMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        public readonly string $urlVideo,
+        public readonly string $resumo,
+        public readonly string $titulo = 'Resumo do vídeo',
+    ) {}
 
     /**
      * Get the message envelope.
@@ -27,7 +24,7 @@ class ResultadoResumoMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Resultado Resumo Mail',
+            subject: $this->titulo,
         );
     }
 
@@ -38,6 +35,11 @@ class ResultadoResumoMail extends Mailable
     {
         return new Content(
             markdown: 'emails.resultado_resumo',
+            with: [
+                'titulo' => $this->titulo,
+                'urlVideo' => $this->urlVideo,
+                'resumo' => $this->resumo,
+            ],
         );
     }
 
